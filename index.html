@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroShierd // System Operational</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+JP:wght@300;400;700&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-purple: #bc13fe;
+            --discord-color: #5865F2;
+            --terminal-bg: #0b0b10;
+            --text-main: #e0e0e0;
+            --text-dim: #707080;
+            --success: #00ff9d;
+            --danger: #ff0055;
+            --glass: rgba(255, 255, 255, 0.05);
+            --gradient-1: linear-gradient(45deg, var(--neon-cyan), var(--discord-color));
+            --gradient-2: linear-gradient(135deg, var(--neon-purple), #ff007b);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #050508;
+            color: var(--text-main);
+            overflow-x: hidden;
+            min-height: 100vh;
+            perspective: 1px;
+            transform-style: preserve-3d;
+        }
+        .parallax-group {
+            position: relative;
+            height: 100vh;
+            transform-style: preserve-3d;
+        }
+        .parallax-layer {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            transform-style: preserve-3d;
+        }
+        .layer-back {
+            transform: translateZ(-1px) scale(2);
+        }
+        .layer-base {
+            transform: translateZ(0);
+        }
+        .matrix-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            overflow: hidden;
+            z-index: -3;
+            filter: blur(0.5px);
+        }
+        .matrix-canvas {
+            display: block;
+        }
+        .vignette {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 40%, #050508 100%);
+            z-index: -1;
+        }
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 5%; position: fixed; width: 100%; z-index: 1000;
+            backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255,255,255,0.05);
+            background-color: rgba(5,5,8,0.3);
+        }
+        .brand {
+            font-family: 'Rajdhani', sans-serif; font-size: 1.5rem; font-weight: 700;
+            letter-spacing: 2px; color: #fff;
+        }
+        .brand span { background: var(--gradient-1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .status-indicator {
+            font-size: 0.8rem; color: var(--text-dim);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background-color: var(--success); box-shadow: 0 0 10px var(--success);
+            animation: pulse 1.5s infinite alternate;
+        }
+        @keyframes pulse {
+            from { box-shadow: 0 0 5px var(--success); }
+            to { box-shadow: 0 0 15px var(--success), 0 0 25px rgba(0,255,157,0.3); }
+        }
+        main {
+            padding-top: 120px;
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+            min-height: calc(100vh - 120px);
+            justify-content: center;
+        }
+        h1 {
+            font-family: 'Rajdhani', sans-serif; font-size: clamp(2.5rem, 5vw, 4.5rem);
+            line-height: 1.1; margin-bottom: 15px; text-transform: uppercase;
+            background: var(--gradient-1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0,243,255,0.4);
+        }
+        .subtitle {
+            color: var(--text-dim); max-width: 600px; margin-bottom: 50px; font-size: 1rem;
+        }
+        .terminal-wrapper {
+            width: 90%; max-width: 900px; margin-bottom: 60px; position: relative;
+            transform: translateZ(0);
+        }
+        .terminal-window {
+            background: var(--terminal-bg); border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 0 40px rgba(0,0,0,0.5);
+            font-family: 'JetBrains Mono', monospace; text-align: left; overflow: hidden; position: relative;
+        }
+        .terminal-bar {
+            background: #1a1a20; padding: 8px 15px; display: flex; align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .win-btn { width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+        .win-close { background: #ff5f56; } .win-min { background: #ffbd2e; } .win-max { background: #27c93f; }
+        .win-title { margin-left: auto; font-size: 0.75rem; color: var(--text-dim); }
+        .terminal-content {
+            padding: 20px; height: 320px; font-size: 0.9rem; color: #d0d0d0;
+            overflow-y: scroll; scroll-behavior: smooth;
+            background-image: radial-gradient(rgba(0,0,0,0.5) 1px, transparent 1px);
+            background-size: 4px 4px;
+            text-shadow: 0 0 2px rgba(0,243,255,0.2);
+        }
+        .cmd-line { display: flex; gap: 10px; margin-bottom: 6px; }
+        .user { color: var(--success); font-weight: bold; }
+        .bot { color: var(--neon-cyan); }
+        .sys-warn { color: var(--neon-purple); }
+        .sys-err { color: var(--danger); }
+        .text { opacity: 0.9; }
+        .btn-group { display: flex; gap: 20px; justify-content: center; margin-top: 30px; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 16px 30px; border-radius: 4px; font-family: 'Rajdhani', sans-serif;
+            font-weight: 700; font-size: 1.1rem; text-decoration: none; text-transform: uppercase;
+            letter-spacing: 1px; transition: 0.3s;
+            border: 1px solid transparent;
+        }
+        .btn-discord {
+            background: var(--discord-color); color: #fff;
+            box-shadow: 0 0 20px rgba(88, 101, 242, 0.4);
+        }
+        .btn-discord:hover {
+            background: #4752c4; box-shadow: 0 0 40px rgba(88, 101, 242, 0.7);
+            transform: translateY(-2px);
+        }
+        .btn-doc {
+            background: transparent; border-color: var(--neon-cyan); color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0,243,255,0.2);
+        }
+        .btn-doc:hover {
+            background: rgba(0,243,255,0.1); box-shadow: 0 0 20px rgba(0,243,255,0.5);
+            transform: translateY(-2px);
+        }
+        .commands-section {
+            width: 100%; max-width: 1200px; padding: 100px 20px; text-align: left;
+            background: linear-gradient(to bottom, rgba(5,5,8,0.8), rgba(5,5,8,0.9));
+            transform: translateZ(0);
+        }
+        .section-title {
+            font-family: 'Rajdhani', sans-serif; font-size: 2.5rem;
+            background: var(--gradient-2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 50px; text-align: center; text-transform: uppercase;
+            text-shadow: 0 0 15px rgba(188,19,254,0.4);
+        }
+        .cmd-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+        .cmd-card {
+            background: var(--glass); border: 1px solid rgba(255,255,255,0.05);
+            padding: 25px; border-radius: 8px; transition: 0.3s; cursor: pointer;
+            backdrop-filter: blur(5px);
+            position: relative; overflow: hidden;
+        }
+        .cmd-card::before {
+            content: ''; position: absolute; top: -50%; left: -50%;
+            width: 0; height: 0; background: rgba(0,243,255,0.1);
+            border-radius: 50%; transform: scale(0);
+            transition: all 0.5s ease-out;
+            z-index: -1;
+        }
+        .cmd-card:hover::before {
+            width: 200%; height: 200%; top: -50%; left: -50%; transform: scale(1);
+        }
+        .cmd-card:hover {
+            border-color: var(--neon-cyan); transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,243,255,0.2);
+        }
+        .cmd-name {
+            font-family: 'JetBrains Mono', monospace; color: var(--neon-cyan);
+            font-size: 1.1rem; margin-bottom: 10px; display: block;
+        }
+        .cmd-desc {
+            font-size: 0.9rem; color: var(--text-dim); line-height: 1.6;
+        }
+        .modal {
+            display: none; position: fixed; z-index: 1001; left: 0; top: 0;
+            width: 100%; height: 100%; overflow: auto;
+            background-color: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+            align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: var(--terminal-bg); border-radius: 10px;
+            padding: 40px; border: 1px solid var(--neon-cyan);
+            max-width: 600px; width: 90%; position: relative;
+            box-shadow: 0 0 50px rgba(0,243,255,0.4);
+            animation: modalPop 0.3s ease-out;
+        }
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .close-button {
+            position: absolute; top: 15px; right: 25px;
+            color: var(--text-dim); font-size: 28px; font-weight: bold;
+            cursor: pointer; transition: 0.2s;
+        }
+        .close-button:hover { color: var(--neon-cyan); }
+        .modal-title {
+            font-family: 'Rajdhani', sans-serif; font-size: 1.8rem;
+            color: var(--neon-cyan); margin-bottom: 20px;
+        }
+        .modal-body p { margin-bottom: 15px; color: var(--text-main); font-size: 0.95rem; }
+        .modal-body pre {
+            background: rgba(0,0,0,0.4); padding: 15px; border-radius: 5px;
+            overflow-x: auto; font-family: 'JetBrains Mono', monospace;
+            color: var(--success); font-size: 0.85rem; line-height: 1.4;
+            border-left: 3px solid var(--neon-purple);
+        }
+        footer {
+            margin-top: 100px; padding: 30px; text-align: center;
+            font-size: 0.8rem; color: var(--text-dim);
+            border-top: 1px solid rgba(255,255,255,0.05);
+            background-color: rgba(5,5,8,0.5);
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .terminal-content { font-size: 0.75rem; }
+            .btn-group { flex-direction: column; }
+            .btn { width: 80%; }
+            .modal-content { padding: 30px 20px; }
+            .modal-title { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-bg">
+        <canvas id="matrixCanvas" class="matrix-canvas"></canvas>
+    </div>
+    <div class="vignette"></div>
+
+    <header>
+        <div class="brand">Neuro<span>Shierd</span> //</div>
+        <div class="status-indicator">
+            <span class="status-dot"></span>System Operational
+        </div>
+    </header>
+
+    <div class="parallax-group">
+        <div class="parallax-layer layer-back"></div>
+        <div class="parallax-layer layer-base">
+            <main>
+                <h1>Protect. Restore. <br><span>Dominate.</span></h1>
+                <p class="subtitle">
+                    Discordサーバーの秩序を「完全無料」で守り抜く。<br>
+                    最強の自律型対荒らしシステム、起動。
+                </p>
+
+                <div class="terminal-wrapper">
+                    <div class="terminal-window">
+                        <div class="terminal-bar">
+                            <div class="win-btn win-close"></div>
+                            <div class="win-btn win-min"></div>
+                            <div class="win-btn win-max"></div>
+                            <div class="win-title">neuroshierd_core.exe</div>
+                        </div>
+                        <div class="terminal-content" id="terminal-logs"></div>
+                    </div>
+                    <div class="btn-group">
+                        <a href="https://discord.com/oauth2/authorize?client_id=1436980586500718692&permissions=1100317060230&integration_type=0&scope=bot+applications.commands" class="btn btn-discord" target="_blank">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037 13.43 13.43 0 0 0-1.091 2.238 18.39 18.39 0 0 0-3.206 0 13.43 13.43 0 0 0-1.091-2.238.074.074 0 0 0-.079-.037A19.791 19.791 0 0 0 3.683 4.37a.072.072 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.076.076 0 0 0-.04.106c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-2.595-9.669-5.594-13.685a.074.074 0 0 0-.032-.027zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.946 2.419-2.157 2.419z"/></svg>
+                            Server Invite
+                        </a>
+                        <a href="https://github.com/YourGitHubOrg/NeuroShierd-Docs" class="btn btn-doc" target="_blank">
+                            Documentation
+                        </a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <section class="commands-section">
+        <h2 class="section-title">Command Protocols</h2>
+        <div class="cmd-grid" id="command-grid"></div>
+    </section>
+
+    <footer>
+        <p>NeuroShierd &copy; 2025. Absolute Defense System. <br>Designated for Discord.</p>
+    </footer>
+
+    <div id="commandModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3 class="modal-title" id="modalCmdName"></h3>
+            <div class="modal-body">
+                <p id="modalCmdDesc"></p>
+                <p><strong>Usage:</strong></p>
+                <pre id="modalCmdUsage"></pre>
+                <p id="modalCmdNote"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Matrix Rain Effect
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const matrix = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;':\",./<>?`~";
+        const font_size = 16;
+        const columns = canvas.width / font_size;
+        const drops = [];
+        for (let x = 0; x < columns; x++) drops[x] = 1;
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(5, 5, 8, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00f3ff';
+            ctx.font = font_size + 'px JetBrains Mono';
+            for (let i = 0; i < drops.length; i++) {
+                const text = matrix.charAt(Math.floor(Math.random() * matrix.length));
+                ctx.fillText(text, i * font_size, drops[i] * font_size);
+                if (drops[i] * font_size > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 35);
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Terminal Log Simulation
+        const logsContainer = document.getElementById('terminal-logs');
+        const logData = [
+            { type: 'user', text: '/status' },
+            { type: 'bot', text: 'Initiating system diagnostics... ' },
+            { type: 'bot', text: 'Core modules: ONLINE. Threat detection: ACTIVE.' },
+            { type: 'bot', text: 'Latency: 8ms. Operational status: NOMINAL.' },
+            { type: 'delay', ms: 1200 },
+            { type: 'sys-warn', text: '[ALERT] Unauthorized access attempt detected from IP: 192.168.1.100' },
+            { type: 'bot', text: 'Executing /deny ip:192.168.1.100 reason:Unauthorized_Probe' },
+            { type: 'sys-err', text: 'Intrusion attempt blocked. IP Blacklisted.' },
+            { type: 'delay', ms: 1800 },
+            { type: 'user', text: '/audit backup' },
+            { type: 'bot', text: 'Performing full server configuration audit backup...' },
+            { type: 'bot', text: 'Backup [20250315-A-001] completed. Integrity check: OK.' },
+            { type: 'delay', ms: 1000 },
+            { type: 'sys-warn', text: '[WARNING] Rapid user joining detected on GuildID: 123456' },
+            { type: 'bot', text: 'Activating Anti-Raid Protocol. Executing /safe ban for suspicious accounts...' },
+            { type: 'sys-err', text: 'Multiple threat actors removed. Server integrity restored.' },
+            { type: 'delay', ms: 1500 },
+            { type: 'user', text: '/stats' },
+            { type: 'bot', text: 'Threats mitigated in last 24h: 7. Total successful operations: 1245.' },
+            { type: 'bot', text: 'NeuroShierd awaits your next command.' }
+        ];
+        let logIndex = 0;
+
+        function addLogEntry() {
+            if (logIndex >= logData.length) {
+                logIndex = 0; // Loop logs
+            }
+
+            const item = logData[logIndex];
+            
+            if (item.type === 'delay') {
+                logIndex++;
+                setTimeout(addLogEntry, item.ms);
+                return;
+            }
+
+            const div = document.createElement('div');
+            div.className = 'cmd-line';
+            let prefix = '';
+            if (item.type === 'user') prefix = '<span class="user">user@server:~$</span> ';
+            if (item.type === 'bot') prefix = '<span class="bot">[NEURO]</span> ';
+            if (item.type === 'sys-warn') prefix = '<span class="sys-warn">[ALERT]</span> ';
+            if (item.type === 'sys-err') prefix = '<span class="sys-err">[ACTION]</span> ';
+
+            div.innerHTML = `${prefix}<span class="text">${item.text}</span>`;
+            logsContainer.appendChild(div);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+
+            logIndex++;
+            setTimeout(addLogEntry, Math.random() * 800 + 400); // Randomize timing
+        }
+        window.addEventListener('load', () => setTimeout(addLogEntry, 1500));
+
+        // Command Data for Modals
+        const commands = [
+            {
+                name: "/audit backup",
+                desc: "サーバーの現在の設定、チャンネル、ロール、権限などの完全なスナップショットを安全な場所に保存します。これにより、大規模な荒らしや乗っ取りが発生した場合でも、以前の状態に正確に戻すことが可能です。",
+                usage: "/audit backup",
+                note: "緊急時の復旧計画において最も重要なコマンドの一つです。定期的な実行を推奨します。"
+            },
+            {
+                name: "/backup channels",
+                desc: "現在のサーバー内の全テキスト/ボイスチャンネルの構造、設定、権限オーバーライドを個別にバックアップします。チャンネルが削除されたり、設定が変更された際に迅速な復元が可能になります。",
+                usage: "/backup channels",
+                note: "大規模なチャンネル構成の変更前に実行することで、不測の事態に備えられます。"
+            },
+            {
+                name: "/backup roles",
+                desc: "サーバー内の全ロールとその権限設定をバックアップします。これにより、誤ってロールが削除されたり、権限が変更されたりした場合でも、簡単に以前の状態に戻すことができます。",
+                usage: "/backup roles",
+                note: "複雑なロール構造を持つサーバーで特に有効です。ロール作成/変更後に実行してください。"
+            },
+            {
+                name: "/deny",
+                desc: "指定したユーザーやIPアドレス、または特定の行動パターンを持つエンティティに対して、一時的または永続的にサーバーへのアクセスや特定のアクションを拒否します。高度なAIが判断するため、誤検知が少ないです。",
+                usage: "/deny [user|ip|pattern] [reason]",
+                note: "荒らしの兆候が見られた際、即座に介入して被害の拡大を防ぎます。"
+            },
+            {
+                name: "/allow",
+                desc: "以前に拒否されたユーザーやIPアドレスのアクセス制限を解除し、サーバーへの再接続やアクションを許可します。誤ってブロックしてしまった場合や、問題が解決した場合に使用します。",
+                usage: "/allow [user|ip]",
+                note: "承認フローや再評価後にのみ使用されるべきです。"
+            },
+            {
+                name: "/logs",
+                desc: "NeuroShierdの活動ログ、荒らし検知記録、モデレーションアクションの詳細を表示します。これにより、サーバーで何が起こっているかを透明に把握できます。",
+                usage: "/logs [filter:type|user|time]",
+                note: "監査や問題解決のために重要な情報を提供します。"
+            },
+            {
+                name: "/ping",
+                desc: "NeuroShierd Botの現在の応答速度と稼働状況を確認します。サーバーとの接続状態やBotの負荷状態を把握できます。",
+                usage: "/ping",
+                note: "Botが正常に機能しているかを手軽に確認する診断コマンドです。"
+            },
+            {
+                name: "/restore_channels",
+                desc: "バックアップデータを使用して、削除されたチャンネルや破損したチャンネルを復元します。チャンネルの権限設定もバックアップ時の状態
