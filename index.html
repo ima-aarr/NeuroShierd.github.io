@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+JP:wght@300;400;700&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* === Core Variables === */
+        
         :root {
             --neon-cyan: #00f3ff;
             --neon-purple: #bc13fe;
@@ -32,7 +32,7 @@
             min-height: 100vh;
         }
 
-        /* === Background VFX === */
+        
         .grid-bg {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -53,7 +53,7 @@
             z-index: -1;
         }
 
-        /* === Header === */
+        
         header {
             display: flex;
             justify-content: space-between;
@@ -84,7 +84,7 @@
             margin-right: 8px;
         }
 
-        /* === Hero Section === */
+        
         main {
             padding-top: 120px;
             display: flex;
@@ -114,7 +114,7 @@
             font-size: 1rem;
         }
 
-        /* === Terminal Interface === */
+        
         .terminal-wrapper {
             width: 90%;
             max-width: 900px;
@@ -172,7 +172,7 @@
 
         @keyframes typeIn { to { opacity: 1; } }
 
-        /* === Button === */
+        
         .btn-main {
             display: inline-flex;
             align-items: center;
@@ -198,7 +198,7 @@
             box-shadow: 0 0 40px rgba(88, 101, 242, 0.7);
         }
 
-        /* === Commands Grid === */
+        
         .commands-section {
             width: 100%;
             max-width: 1000px;
@@ -247,7 +247,7 @@
             color: var(--text-dim);
         }
 
-        /* Footer */
+        
         footer {
             margin-top: 100px;
             padding: 30px;
@@ -257,7 +257,7 @@
             border-top: 1px solid rgba(255,255,255,0.05);
         }
 
-        /* Mobile */
+        
         @media (max-width: 768px) {
             h1 { font-size: 2.5rem; }
             .terminal-content { font-size: 0.75rem; }
@@ -361,7 +361,7 @@
     <script>
         const logs = document.getElementById('terminal-logs');
         
-        // 実際のコマンドを使用したシミュレーションログ
+        
         const logData = [
             { type: 'user', text: '/ping' },
             { type: 'bot', text: 'Pong! 12ms (System Stable)' },
@@ -405,14 +405,14 @@
             div.innerHTML = `${prefix}<span class="text">${item.text}</span>`;
             logs.appendChild(div);
             
-            // 自動スクロール
+            
             logs.scrollTop = logs.scrollHeight;
 
             index++;
-            setTimeout(addLog, 600); // 通常の行の表示間隔
+            setTimeout(addLog, 600); 
         }
 
-        // ページ読み込み後に開始
+        
         window.addEventListener('load', () => {
             setTimeout(addLog, 500);
         });
